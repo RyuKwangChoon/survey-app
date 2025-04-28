@@ -1,24 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Survey, SurveyResponse } from '../types/survey';
 import * as XLSX from 'xlsx';
-
-interface Question {
-  id: string;
-  text: string;
-  type: 'text' | 'single' | 'multiple';
-  options?: string[];
-}
-
-interface SurveyContextType {
-  surveys: Survey[];
-  responses: SurveyResponse[];
-  addSurvey: (survey: Survey) => void;
-  updateSurvey: (survey: Survey) => void;
-  deleteSurvey: (id: string) => void;
-  addResponse: (response: SurveyResponse) => void;
-  getResponsesBySurveyId: (surveyId: string) => SurveyResponse[];
-  exportResponsesToExcel: (surveyId: string) => void;
-}
 
 const initialSurvey: Survey = {
   id: '1',
@@ -44,12 +26,27 @@ const initialSurvey: Survey = {
   ]
 };
 
+interface SurveyContextType {
+  surveys: Survey[];
+  responses: SurveyResponse[];
+  addSurvey: (survey: Survey) => void;
+  updateSurvey: (survey: Survey) => void;
+  deleteSurvey: (id: string) => void;
+  addResponse: (response: SurveyResponse) => void;
+  getResponsesBySurveyId: (surveyId: string) => SurveyResponse[];
+  exportResponsesToExcel: (surveyId: string) => void;
+}
+
 const SurveyContext = createContext<SurveyContextType | undefined>(undefined);
 
-export const SurveyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SurveyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [surveys, setSurveys] = useState<Survey[]>(() => {
     const savedSurveys = localStorage.getItem('surveys');
-    return savedSurveys ? JSON.parse(savedSurveys) : [];
+    if (savedSurveys) {
+      const parsedSurveys = JSON.parse(savedSurveys);
+      return parsedSurveys.length > 0 ? parsedSurveys : [initialSurvey];
+    }
+    return [initialSurvey];
   });
 
   const [responses, setResponses] = useState<SurveyResponse[]>(() => {
@@ -100,7 +97,7 @@ export const SurveyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         Object.entries(response.answers).forEach(([questionId, answer]) => {
           const question = survey.questions.find(q => q.id === questionId);
           if (question) {
-            rowData[question.text] = Array.isArray(answer) ? answer.join(', ') : answer;
+            rowData[question.text] = Array.isArray(answer) ? answer.join(', ') : String(answer);
           }
         });
 

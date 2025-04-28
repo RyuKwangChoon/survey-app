@@ -23,23 +23,25 @@ function Navigation() {
 
 function App() {
   return (
-    <SurveyProvider>
-      <Router>
-        <div className="App">
-          <header className="App-header">
-            <h1>설문 조사 앱</h1>
-            <Navigation />
+    <Router>
+      <SurveyProvider>
+        <div className="min-h-screen bg-gray-100">
+          <header className="bg-white shadow">
+            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+              <h1 className="text-3xl font-bold text-gray-900">설문조사 시스템</h1>
+              <Navigation />
+            </div>
           </header>
           <main>
             <Routes>
-              <Route path="/" element={<SurveyForm />} />
+              <Route path="/" element={<SurveyForm surveyId="1" onComplete={() => {}} />} />
               <Route path="/manage" element={<SurveyManager />} />
-              <Route path="/results" element={<SurveyResults />} />
+              <Route path="/results" element={<SurveyResults surveyId="1" />} />
             </Routes>
           </main>
         </div>
-      </Router>
-    </SurveyProvider>
+      </SurveyProvider>
+    </Router>
   );
 }
 
