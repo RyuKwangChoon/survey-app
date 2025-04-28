@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Survey, SurveyResponse } from '../types/survey';
+import XLSX from 'xlsx';
 
 interface Question {
   id: string;
@@ -10,9 +11,13 @@ interface Question {
 
 interface SurveyContextType {
   surveys: Survey[];
+  responses: SurveyResponse[];
   addSurvey: (survey: Survey) => void;
   updateSurvey: (survey: Survey) => void;
   deleteSurvey: (id: string) => void;
+  addResponse: (response: SurveyResponse) => void;
+  getResponsesBySurveyId: (surveyId: string) => SurveyResponse[];
+  exportResponsesToExcel: (surveyId: string) => void;
 }
 
 const initialSurvey: Survey = {
@@ -41,23 +46,83 @@ const initialSurvey: Survey = {
 
 const SurveyContext = createContext<SurveyContextType | undefined>(undefined);
 
-export const SurveyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [surveys, setSurveys] = useState<Survey[]>([]);
+export const SurveyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [surveys, setSurveys] = useState<Survey[]>(() => {
+    const savedSurveys = localStorage.getItem('surveys');
+    return savedSurveys ? JSON.parse(savedSurveys) : [];
+  });
+
+  const [responses, setResponses] = useState<SurveyResponse[]>(() => {
+    const savedResponses = localStorage.getItem('responses');
+    return savedResponses ? JSON.parse(savedResponses) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('surveys', JSON.stringify(surveys));
+  }, [surveys]);
+
+  useEffect(() => {
+    localStorage.setItem('responses', JSON.stringify(responses));
+  }, [responses]);
 
   const addSurvey = (survey: Survey) => {
-    setSurveys([...surveys, survey]);
+    setSurveys(prev => [...prev, survey]);
   };
 
   const updateSurvey = (survey: Survey) => {
-    setSurveys(surveys.map(s => s.id === survey.id ? survey : s));
+    setSurveys(prev => prev.map(s => s.id === survey.id ? survey : s));
   };
 
   const deleteSurvey = (id: string) => {
-    setSurveys(surveys.filter(s => s.id !== id));
+    setSurveys(prev => prev.filter(s => s.id !== id));
+    setResponses(prev => prev.filter(r => r.surveyId !== id));
+  };
+
+  const addResponse = (response: SurveyResponse) => {
+    setResponses(prev => [...prev, response]);
+  };
+
+  const getResponsesBySurveyId = (surveyId: string) => {
+    return responses.filter(r => r.surveyId === surveyId);
+  };
+
+  const exportResponsesToExcel = (surveyId: string) => {
+    const survey = surveys.find(s => s.id === surveyId);
+    if (!survey) return;
+
+    const surveyResponses = responses.filter(r => r.surveyId === surveyId);
+    const worksheet = XLSX.utils.json_to_sheet(
+      surveyResponses.map(response => {
+        const rowData: Record<string, string> = {
+          '응답 시간': new Date(parseInt(response.timestamp)).toLocaleString()
+        };
+
+        Object.entries(response.answers).forEach(([questionId, answer]) => {
+          const question = survey.questions.find(q => q.id === questionId);
+          if (question) {
+            rowData[question.text] = Array.isArray(answer) ? answer.join(', ') : answer;
+          }
+        });
+
+        return rowData;
+      })
+    );
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '설문 결과');
+    XLSX.writeFile(workbook, `${survey.title}_결과.xlsx`);
   };
 
   return (
-    <SurveyContext.Provider value={{ surveys, addSurvey, updateSurvey, deleteSurvey }}>
+    <SurveyContext.Provider value={{
+      surveys,
+      responses,
+      addSurvey,
+      updateSurvey,
+      deleteSurvey,
+      addResponse,
+      getResponsesBySurveyId,
+      exportResponsesToExcel
+    }}>
       {children}
     </SurveyContext.Provider>
   );
