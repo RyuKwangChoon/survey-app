@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Survey, SurveyResponse } from '../types/survey';
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 
 interface Question {
   id: string;

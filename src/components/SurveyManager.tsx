@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useSurvey } from '../context/SurveyContext';
-import { Survey, SurveyResponse } from '../types/survey';
 import './SurveyManager.css';
 
 const SurveyManager: React.FC = () => {
-  const { surveys, addSurvey, updateSurvey, deleteSurvey } = useSurvey();
+  const { surveys, addSurvey, deleteSurvey } = useSurvey();
   const [newSurvey, setNewSurvey] = useState({
     title: '',
     questions: [] as Array<{
